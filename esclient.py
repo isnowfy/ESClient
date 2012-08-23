@@ -41,6 +41,7 @@ class ESClient:
         self.es_url = es_url
         self.request_timeout = request_timeout
         self.bulk_data = ''
+        self.msearch_data = ''
 
         if self.es_url.endswith('/'):
             self.es_url = self.es_url[:-1]
@@ -481,7 +482,8 @@ class ESClient:
 
     def bulk_push(self):
         """Make a raw HTTP bulk request to ElasticSearch.
-        Returns true if the index was deleted and false otherwise.
+
+        Returns true if the push was succeed and false otherwise.
 
         """
         kwargs = { 'timeout': self.request_timeout }
@@ -492,6 +494,24 @@ class ESClient:
         if 200 <= rescode < 300:
             return True
         return False
+
+    def msearch(self, index, doctype, body):
+        """Msearch the supplied document."""
+        data = json.dumps({'index': index, 'type': doctype}) + '\n' + json.dumps(body) + '\n'
+        self.msearch_data += data
+
+    def msearch_push(self):
+        """Make a raw HTTP msearch request to ElasticSearch.
+
+        Returns the msearch result.
+
+        """
+        kwargs = { 'timeout': self.request_timeout }
+        url = self.es_url + '/_msearch'
+        kwargs['data'] = self.msearch_data
+        result = json.loads(requests.request('get', url, **kwargs).text)
+        self.msearch_data = ''
+        return result
 
 if __name__ == '__main__':
     print "This is a library, it is not intended to be started by itself."
